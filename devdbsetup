@@ -60,10 +60,10 @@ printHelp() {
     echo "$SCRIPT_NAME - Copies a remote MySQL database schema to your local installation"
     echo
     echo "usage:"
-    echo "$SCRIPT_NAME <database schema> <remote database host> <remote database port> <remote database user> <local database user>"
+    echo "\t$SCRIPT_NAME <database schema> <remote database host> <remote database port> <remote database user> <local database user>"
     echo
     echo "example:"
-    echo "$SCRIPT_NAME my_schema someremotedb.com 3306 remote_user local_user"
+    echo "\t$SCRIPT_NAME my_schema someremotedb.com 3306 remote_user local_user"
 }
 
 
@@ -96,8 +96,6 @@ if [ $# -ne 5 ]; then
     exit 1
 fi
 
-
-#echo "$SCRIPT_NAME my_schema someremotedb.com 3306 remote_user local_user"
 DB_SCHEMA=$1
 REMOTE_DB_HOST=$2
 REMOTE_DB_PORT=$3
