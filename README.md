@@ -13,7 +13,11 @@ make uninstall
 ```
 
 ## Usage
-
-## Configuration file (`db.setup`)
-
-## Acknowledgements
+```
+devdbsetup \
+    <database schema> \
+    <remote database host> \
+    <remote database port> \
+    <remote database user> \
+    <local database user>
+```
