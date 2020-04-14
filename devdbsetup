@@ -1,0 +1,117 @@
+#!/bin/sh
+set -e
+
+getPasswordInput() {
+  stty_orig=$(stty -g)
+  stty -echo
+  read -r password
+  stty "$stty_orig"
+  echo "$password"
+}
+
+$(command -v mysql > /dev/null)
+if [ $? -eq 1 ]
+then
+    echo "Must install MySQL to continue."
+    exit 1
+fi
+
+SCRIPT_NAME=$(basename $0)
+
+NOT_SET=notset
+DB_SCHEMA=$NOT_SET
+TEMP_DB_DUMP_FILE=$DB_SCHEMA.dump.sql
+REMOTE_DB_HOST=$NOT_SET
+REMOTE_DB_PORT=$NOT_SET
+REMOTE_DB_USER=$NOT_SET
+LOCAL_DB_USER=$NOT_SET
+
+createRemoteSchemaDump() {
+    mysqldump \
+    --lock-tables=false \
+    --no-data \
+    --single-transaction \
+    --skip-add-locks \
+    --skip-disable-keys \
+    --column-statistics=0 \
+        -u $REMOTE_DB_USER \
+        -p$PASS \
+        -h $REMOTE_DB_HOST \
+        -P $REMOTE_DB_PORT \
+        $DB_SCHEMA > $TEMP_DB_DUMP_FILE
+}
+
+initializeLocalDatabase() {
+    mysql -u root -e "DROP DATABASE IF EXISTS $DB_SCHEMA;"
+    mysql -u root -e "CREATE DATABASE $DB_SCHEMA;"
+    mysql -u root -e "CREATE USER IF NOT EXISTS $LOCAL_DB_USER"
+}
+
+restoreLocalDatabaseFromDump() { 
+    mysql -u root --database=$DB_SCHEMA < $TEMP_DB_DUMP_FILE
+    mysql -u root -e "GRANT ALL PRIVILEGES ON $DB_SCHEMA.* TO $LOCAL_DB_USER"
+}
+
+cleanupDumpFiles() { 
+    rm $TEMP_DB_DUMP_FILE
+}
+
+printHelp() {
+    echo "$SCRIPT_NAME - Copies a remote MySQL database schema to your local installation"
+    echo
+    echo "usage:"
+    echo "$SCRIPT_NAME <database schema> <remote database host> <remote database port> <remote database user> <local database user>"
+    echo
+    echo "example:"
+    echo "$SCRIPT_NAME my_schema someremotedb.com 3306 remote_user local_user"
+}
+
+
+printArgs() {
+    echo "DB_SCHEMA=$DB_SCHEMA"
+    echo "TEMP_DB_DUMP_FILE=$TEMP_DB_DUMP_FILE"
+    echo "REMOTE_DB_HOST=$REMOTE_DB_HOST"
+    echo "REMOTE_DB_PORT=$REMOTE_DB_PORT"
+    echo "REMOTE_DB_USER=$REMOTE_DB_USER"
+    echo "LOCAL_DB_USER=$LOCAL_DB_USER"
+    echo "PASS=$PASS"
+}
+
+# get args
+while test $# -gt 0; do
+    case "$1" in
+    h|help|-h|--help)
+        printHelp
+        exit 0
+    ;;
+    *)
+        break
+    ;;
+    esac
+done
+
+
+if [ $# -ne 5 ]; then
+    printHelp
+    exit 1
+fi
+
+
+#echo "$SCRIPT_NAME my_schema someremotedb.com 3306 remote_user local_user"
+DB_SCHEMA=$1
+REMOTE_DB_HOST=$2
+REMOTE_DB_PORT=$3
+REMOTE_DB_USER=$4
+LOCAL_DB_USER=$5
+TEMP_DB_DUMP_FILE=$DB_SCHEMA.dump.sql
+
+# get remote database password
+echo "Enter $REMOTE_DB_HOST database password for $REMOTE_DB_HOST:\n"
+PASS=$(getPasswordInput)
+
+createRemoteSchemaDump
+initializeLocalDatabase
+restoreLocalDatabaseFromDump
+cleanupDumpFiles
+
+exit 0
