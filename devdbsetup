@@ -1,14 +1,6 @@
 #!/bin/sh
 set -e
 
-getPasswordInput() {
-  stty_orig=$(stty -g)
-  stty -echo
-  read -r password
-  stty "$stty_orig"
-  echo "$password"
-}
-
 $(command -v mysql > /dev/null)
 if [ $? -eq 1 ]
 then
@@ -104,8 +96,12 @@ LOCAL_DB_USER=$5
 TEMP_DB_DUMP_FILE=$DB_SCHEMA.dump.sql
 
 # get remote database password
-echo "Enter $REMOTE_DB_HOST database password for $REMOTE_DB_HOST:\n"
-PASS=$(getPasswordInput)
+until security find-generic-password -a "$(whoami)" -s "$REMOTE_DB_HOST" > /dev/null 2>&1
+do
+	echo "New password detected: $REMOTE_DB_HOST"
+	security add-generic-password -a "$(whoami)" -s "$REMOTE_DB_HOST" -w
+done
+PASS="$(security find-generic-password -a "$(whoami)" -s "$REMOTE_DB_HOST" -w)"
 
 createRemoteSchemaDump
 initializeLocalDatabase
