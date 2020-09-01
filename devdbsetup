@@ -95,13 +95,15 @@ REMOTE_DB_USER=$4
 LOCAL_DB_USER=$5
 TEMP_DB_DUMP_FILE=$DB_SCHEMA.dump.sql
 
+
 # get remote database password
-until security find-generic-password -a "$(whoami)" -s "$REMOTE_DB_HOST" > /dev/null 2>&1
+PASS_KEY=$REMOTE_DB_HOST.$DB_SCHEMA
+until security find-generic-password -a "$(whoami)" -s "$PASS_KEY" > /dev/null 2>&1
 do
-	echo "New password detected: $REMOTE_DB_HOST"
-	security add-generic-password -a "$(whoami)" -s "$REMOTE_DB_HOST" -w
+	echo "New password detected: $PASS_KEY"
+	security add-generic-password -a "$(whoami)" -s "$PASS_KEY" -w
 done
-PASS="$(security find-generic-password -a "$(whoami)" -s "$REMOTE_DB_HOST" -w)"
+PASS="$(security find-generic-password -a "$(whoami)" -s "$PASS_KEY" -w)"
 
 createRemoteSchemaDump
 initializeLocalDatabase
