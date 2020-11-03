@@ -17,6 +17,7 @@ REMOTE_DB_HOST=$NOT_SET
 REMOTE_DB_PORT=$NOT_SET
 REMOTE_DB_USER=$NOT_SET
 LOCAL_DB_USER=$NOT_SET
+MYSQLDUMP_FLAGS=""
 
 createRemoteSchemaDump() {
     mysqldump \
@@ -26,11 +27,12 @@ createRemoteSchemaDump() {
     --skip-add-locks \
     --skip-disable-keys \
     --column-statistics=0 \
+    $MYSQLDUMP_FLAGS \
         -u $REMOTE_DB_USER \
         -p$PASS \
         -h $REMOTE_DB_HOST \
         -P $REMOTE_DB_PORT \
-        $DB_SCHEMA > $TEMP_DB_DUMP_FILE
+        $DB_SCHEMA > $TEMP_DB_DUMP_FILE || true
 
     sed -i '' "s/ENCRYPTION='Y'//" "$TEMP_DB_DUMP_FILE"
 }
@@ -41,12 +43,12 @@ initializeLocalDatabase() {
     mysql -u root -e "CREATE USER IF NOT EXISTS $LOCAL_DB_USER"
 }
 
-restoreLocalDatabaseFromDump() { 
+restoreLocalDatabaseFromDump() {
     mysql -u root --database=$DB_SCHEMA < $TEMP_DB_DUMP_FILE
     mysql -u root -e "GRANT ALL PRIVILEGES ON $DB_SCHEMA.* TO $LOCAL_DB_USER"
 }
 
-cleanupDumpFiles() { 
+cleanupDumpFiles() {
     rm $TEMP_DB_DUMP_FILE
 }
 
@@ -54,10 +56,10 @@ printHelp() {
     echo "$SCRIPT_NAME - Copies a remote MySQL database schema to your local installation"
     echo
     echo "usage:"
-    echo "\t$SCRIPT_NAME <database schema> <remote database host> <remote database port> <remote database user> <local database user>"
+    echo "\t$SCRIPT_NAME [-f|--force] <database schema> <remote database host> <remote database port> <remote database user> <local database user>"
     echo
     echo "example:"
-    echo "\t$SCRIPT_NAME my_schema someremotedb.com 3306 remote_user local_user"
+    echo "\t$SCRIPT_NAME -f my_schema someremotedb.com 3306 remote_user local_user"
 }
 
 
@@ -77,6 +79,10 @@ while test $# -gt 0; do
     h|help|-h|--help)
         printHelp
         exit 0
+    ;;
+    -f|--force)
+        MYSQLDUMP_FLAGS+=" --force"
+        shift
     ;;
     *)
         break
