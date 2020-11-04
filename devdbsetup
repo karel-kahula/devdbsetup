@@ -36,7 +36,7 @@ createRemoteSchemaDump() {
 }
 
 initializeLocalDatabase() {
-    mysql -u root -e "DROP DATABASE IF EXISTS $DB_SCHEMA;"
+    mysql -u root -e "SET FOREIGN_KEY_CHECKS=0; DROP DATABASE IF EXISTS $DB_SCHEMA; SET FOREIGN_KEY_CHECKS=1;"
     mysql -u root -e "CREATE DATABASE $DB_SCHEMA;"
     mysql -u root -e "CREATE USER IF NOT EXISTS $LOCAL_DB_USER"
 }
