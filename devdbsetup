@@ -31,6 +31,8 @@ createRemoteSchemaDump() {
         -h $REMOTE_DB_HOST \
         -P $REMOTE_DB_PORT \
         $DB_SCHEMA > $TEMP_DB_DUMP_FILE
+
+    sed -i '' "s/ENCRYPTION='Y'//" "$TEMP_DB_DUMP_FILE"
 }
 
 initializeLocalDatabase() {
